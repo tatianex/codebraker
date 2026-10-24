@@ -5,25 +5,57 @@ import Playgrounds
 // Order does matter
 
 struct CodeBreakerView: View {
-    let game: CodeBreaker = CodeBreaker()
+    @State var game = CodeBreaker(pegChoices: [.brown, .yellow, .orange, .black])
+    
     var body: some View {
         VStack {
             // we do .red because swift is infering the type of Color
-            pegs(colors: [Color.red, .green, .yellow, .blue])
-            pegs(colors: [.blue, .blue, .red, .green])
-            pegs(colors: [.yellow, .green, .yellow, .blue])
+//            pegs(colors: [Color.red, .green, .yellow, .blue])
+            view(for: game.masterCode)
+            ScrollView {
+                view(for: game.guess)
+                ForEach(game.attempts.indices.reversed(), id: \.self) { index in
+                    view(for: game.attempts[index])
+                }
+            }
+//            view(for: game.attempts[0].pegs)
         }
         .padding()
     }
     
-    func pegs(colors: Array<Color>) -> some View {
-        HStack {
-            ForEach(colors.indices, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 24)
-                    .aspectRatio(1, contentMode: .fit)
-                    .foregroundStyle(colors[index])
+    var guessButton: some View {
+        Button("Guess") {
+            withAnimation {
+                game.attemptGuess()
             }
-            MatchMarkers(matches: [.exact, .inexact, .nomatch, .exact])
+        }
+        .font(.system(size: 80))
+        .minimumScaleFactor(0.1)
+    }
+    
+    func view(for code: Code) -> some View {
+        HStack {
+            ForEach(code.pegs.indices, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 24)
+                    .overlay {
+                        if code.pegs[index] == Code.missing {
+                            RoundedRectangle(cornerRadius: 24)
+                                .strokeBorder(Color.gray)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .aspectRatio(1, contentMode: .fit)
+                    .foregroundStyle(code.pegs[index])
+                    .onTapGesture {
+                        if code.kind == .guess {
+                            game.changeGuessPeg(at: index)
+                        }
+                    }
+            }
+            MatchMarkers(matches: code.matches)
+                .overlay {
+                    if code.kind == .guess { guessButton }
+                }
         }
     }
 }
